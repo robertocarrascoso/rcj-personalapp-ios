@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import MapKit
+import UIKit
 
 private let wine = Color(red: 0.48, green: 0.075, blue: 0.17)
 private let highlight = Color(red: 0.99, green: 0.44, blue: 0.55)
@@ -19,7 +20,9 @@ private let highlight = Color(red: 0.99, green: 0.44, blue: 0.55)
     var body: some Scene {
         WindowGroup {
             TabView {
-                Tab("Hábitos", systemImage: "checkmark.circle") { HabitsView(store: store) }
+                Tab("Hábitos", systemImage: "checkmark.circle") {
+                    NavigationStack { HabitsView(store: store) }
+                }
                 Tab("Goals", systemImage: "flag.checkered") { GoalsView(store: store) }
                 Tab("Actividad", systemImage: "figure.walk") { ActivityView(store: store, activity: activity) }
                 Tab("IA", systemImage: "sparkles") { BridgeView(store: store) }
@@ -83,10 +86,14 @@ struct Panel<Content: View>: View {
 }
 struct SectionLine: View {
     let title: String
+    var icon: String? = nil
     var action: (() -> Void)? = nil
     var body: some View {
         HStack {
-            Text(title).font(.headline)
+            if let icon {
+                Image(systemName: icon).foregroundStyle(highlight).accessibilityHidden(true)
+            }
+            Text(title).font(.headline).accessibilityAddTraits(.isHeader)
             Spacer()
             if let action {
                 Button(action: action) {
@@ -101,92 +108,133 @@ struct SectionLine: View {
 struct CheckLine: View {
     let title: String
     var detail: String? = nil
+    var icon: String? = nil
     let done: Bool
+    var strikesWhenDone = false
+    var editDetail: (() -> Void)? = nil
     let action: () -> Void
+
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 13) {
-                Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                    .font(.title3).foregroundStyle(done ? highlight : .secondary).accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).foregroundStyle(.white)
-                    if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
+        if let editDetail {
+            HStack(spacing: 0) {
+                Button(action: editDetail) {
+                    rowLabel.contentShape(.rect)
                 }
-                Spacer(minLength: 0)
+                .buttonStyle(.plain)
+                .accessibilityHint("Edita los minutos")
+                Button(action: action) {
+                    tick.frame(width: 44, height: 44)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(done ? "Desmarcar \(title)" : "Marcar \(title) como hecho")
             }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .contentShape(.rect)
+        } else {
+            Button(action: action) {
+                HStack(spacing: 0) {
+                    rowLabel
+                    tick.frame(width: 44, height: 44).accessibilityHidden(true)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(done ? .isSelected : [])
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(done ? .isSelected : [])
+    }
+
+    private var rowLabel: some View {
+        HStack(spacing: 13) {
+            if let icon {
+                Image(systemName: icon)
+                    .foregroundStyle(highlight).frame(width: 28).accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .strikethrough(strikesWhenDone && done)
+                    .foregroundStyle(.white.opacity(strikesWhenDone && done ? 0.65 : 1))
+                if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+    }
+
+    private var tick: some View {
+        Image(systemName: done ? "checkmark.circle.fill" : "circle")
+            .font(.title3).foregroundStyle(done ? highlight : .secondary)
+            .contentTransition(strikesWhenDone ? .symbolEffect : .identity)
     }
 }
 
 private struct HabitsView: View {
     let store: Store
-    @State private var date = Calendar.current.startOfDay(for: .now)
-    @State private var editing: Habit?
+    @Environment(\.scenePhase) private var phase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var today = Calendar.current.startOfDay(for: .now)
+    @State private var selectedDay: Date?
+    @State private var editing: MinuteEntry?
     @State private var adding = false
     @State private var minutes = ""
     @State private var title = ""
     @State private var target = ""
+    private struct MinuteEntry: Identifiable {
+        let habit: Habit
+        let date: Date
+        var id: UUID { habit.id }
+    }
+
     private var calendar: Calendar { .current }
+    private var date: Date { selectedDay ?? today }
     private var done: Int { store.data.habits.filter { store.completed($0, on: date) }.count }
 
     var body: some View {
         Dashboard(label: "01 / DISCIPLINA", title: "Hábitos", subtitle: "Marca lo que haces. Mira cómo avanzas.") {
-            Panel {
-                HStack {
-                    Button { move(-1) } label: { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
-                        .accessibilityLabel("Día anterior")
-                    DatePicker("Día del registro", selection: $date, in: ...Date.now, displayedComponents: .date)
-                        .labelsHidden().frame(maxWidth: .infinity)
-                    Button { move(1) } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
-                        .accessibilityLabel("Día siguiente").disabled(calendar.isDateInToday(date))
-                }.buttonStyle(.glass)
-                Text("\(done) / \(store.data.habits.count)").font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    .accessibilityLabel("\(done) de \(store.data.habits.count) hábitos completados")
+            VStack(spacing: 8) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        dateControls
+                        Spacer(minLength: 0)
+                        dayCount
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        dateControls
+                        dayCount
+                    }
+                }
                 ProgressView(value: Double(done), total: Double(max(1, store.data.habits.count)))
-                    .tint(highlight)
+                    .tint(highlight).accessibilityHidden(true)
             }
-            Panel {
-                SectionLine(title: "Tu lista") { title = ""; target = ""; adding = true }
-                if store.data.habits.isEmpty { Text("Añade tu primer hábito para empezar.").foregroundStyle(.secondary) }
-                ForEach(store.data.habits) { habit in
-                    CheckLine(title: habit.title, detail: habit.target.map { "\(store.amount(habit, on: date)) / \($0) min" },
-                              done: store.completed(habit, on: date)) {
-                        if habit.target != nil {
-                            minutes = String(store.amount(habit, on: date))
-                            editing = habit
-                        } else {
-                            store.set(store.completed(habit, on: date) ? 0 : 1, habit: habit, on: date)
-                        }
-                    }
-                }
+
+            NavigationLink {
+                HabitStatistics(store: store)
+            } label: {
+                Label("Ver estadísticas", systemImage: "chart.bar.xaxis")
+                    .frame(minHeight: 32)
             }
-            Panel {
-                SectionLine(title: "Últimos 7 días")
-                if !store.data.habits.isEmpty {
-                    Chart(store.recentDays(7)) { day in
-                        BarMark(x: .value("Día", day.date, unit: .day), y: .value("Hábitos", day.completed))
-                            .foregroundStyle(highlight.gradient).cornerRadius(4)
-                            .accessibilityLabel(day.date.formatted(date: .abbreviated, time: .omitted))
-                            .accessibilityValue("\(day.completed) hábitos")
-                    }
-                    .chartYScale(domain: 0...max(1, store.data.habits.count))
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .day)) { _ in AxisValueLabel(format: .dateTime.weekday(.narrow)) }
-                    }
-                    .frame(height: 136)
-                }
-                Label("\(store.streak()) días de racha", systemImage: "flame")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(highlight)
+            .buttonStyle(.glass)
+
+            SectionLine(title: "Tu registro", icon: "list.bullet") {
+                title = ""
+                target = ""
+                adding = true
+            }
+
+            if store.data.habits.isEmpty {
+                Text("Añade tu primer hábito para empezar.").foregroundStyle(.secondary)
+            } else {
+                habitSection("Lista diaria", icon: "checkmark.circle", habits: store.data.habits.filter { $0.target == nil })
+                habitSection("Objetivos de tiempo", icon: "timer", habits: store.data.habits.filter { $0.target != nil })
             }
         }
-        .sheet(item: $editing) { habit in
-            EntryForm(title: habit.title, canSave: Int(minutes).map { (0...1440).contains($0) } == true) {
+        .toolbarVisibility(.hidden, for: .navigationBar)
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in refreshToday() }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in refreshToday() }
+        .onChange(of: phase, initial: true) { _, phase in
+            if phase == .active { refreshToday() }
+        }
+        .sheet(item: $editing) { entry in
+            EntryForm(title: entry.habit.title, canSave: Int(minutes).map { (0...1440).contains($0) } == true) {
                 guard let value = Int(minutes) else { return false }
-                return store.set(value, habit: habit, on: date)
+                return saveAmount(value, habit: entry.habit, on: entry.date)
             } fields: {
                 TextField("Minutos", text: $minutes).keyboardType(.numberPad)
             }
@@ -203,10 +251,136 @@ private struct HabitsView: View {
         }
     }
 
-    private func move(_ days: Int) {
-        if let next = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: date)), next <= .now {
-            date = next
+    private var dateControls: some View {
+        HStack(spacing: 2) {
+            dayArrow("chevron.left", label: "Día anterior", offset: -1)
+            DatePicker("Día del registro", selection: Binding(get: { date }, set: selectDay),
+                       in: ...Date.now, displayedComponents: .date)
+                .datePickerStyle(.compact).labelsHidden()
+            dayArrow("chevron.right", label: "Día siguiente", offset: 1)
+                .disabled(selectedDay == nil)
         }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var dayCount: some View {
+        Label {
+            Text("\(done)/\(store.data.habits.count)")
+                .contentTransition(.numericText(value: Double(done)))
+        } icon: {
+            Image(systemName: "checkmark.circle.fill")
+        }
+        .font(.subheadline.weight(.semibold)).monospacedDigit()
+        .foregroundStyle(.secondary)
+        .accessibilityLabel("\(done) de \(store.data.habits.count) hábitos completados")
+    }
+
+    private func dayArrow(_ icon: String, label: String, offset: Int) -> some View {
+        Button { move(offset) } label: {
+            Image(systemName: icon)
+                .font(.caption.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel(label)
+    }
+
+    @ViewBuilder
+    private func habitSection(_ title: String, icon: String, habits: [Habit]) -> some View {
+        if !habits.isEmpty {
+            let ordered = habits.sorted { first, second in
+                !store.completed(first, on: date) && store.completed(second, on: date)
+            }
+            Panel {
+                SectionLine(title: title, icon: icon)
+                VStack(spacing: 2) {
+                    ForEach(ordered) { habit in
+                        VStack(spacing: 2) {
+                            CheckLine(title: habit.title,
+                                      detail: habit.target.map { "\(store.amount(habit, on: date)) / \($0) min" },
+                                      icon: habit.target == nil ? nil : "clock",
+                                      done: store.completed(habit, on: date), strikesWhenDone: true,
+                                      editDetail: habit.target == nil ? nil : { editMinutes(habit) }) {
+                                let day = selectedDay ?? calendar.startOfDay(for: .now)
+                                let amount = store.completed(habit, on: day) ? 0 : (habit.target ?? 1)
+                                _ = saveAmount(amount, habit: habit, on: day)
+                            }
+                            Divider().opacity(habit.id == ordered.last?.id ? 0 : 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func saveAmount(_ amount: Int, habit: Habit, on day: Date) -> Bool {
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.28)) {
+            store.set(amount, habit: habit, on: day)
+        }
+    }
+
+    private func refreshToday() {
+        today = calendar.startOfDay(for: .now)
+        if let selectedDay, calendar.startOfDay(for: selectedDay) >= today {
+            self.selectedDay = nil
+        }
+    }
+
+    private func selectDay(_ day: Date) {
+        refreshToday()
+        let day = calendar.startOfDay(for: day)
+        selectedDay = day < today ? day : nil
+    }
+
+    private func move(_ days: Int) {
+        refreshToday()
+        if let next = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: date)) {
+            selectDay(next)
+        }
+    }
+
+    private func editMinutes(_ habit: Habit) {
+        refreshToday()
+        minutes = String(store.amount(habit, on: date))
+        editing = MinuteEntry(habit: habit, date: date)
+    }
+}
+
+private struct HabitStatistics: View {
+    let store: Store
+
+    var body: some View {
+        Dashboard(label: "HÁBITOS", title: "Estadísticas", subtitle: "Tu progreso de los últimos siete días.") {
+            Panel {
+                SectionLine(title: "Hábitos completados", icon: "chart.bar.xaxis")
+                if store.data.habits.isEmpty {
+                    Text("Añade un hábito para empezar a ver tu progreso.").foregroundStyle(.secondary)
+                } else {
+                    Chart(store.recentDays(7)) { day in
+                        BarMark(x: .value("Día", day.date, unit: .day), y: .value("Hábitos", day.completed))
+                            .foregroundStyle(highlight.gradient).cornerRadius(4)
+                            .accessibilityLabel(day.date.formatted(date: .abbreviated, time: .omitted))
+                            .accessibilityValue("\(day.completed) hábitos")
+                    }
+                    .chartYScale(domain: 0...max(1, store.data.habits.count))
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .day)) { _ in AxisValueLabel(format: .dateTime.weekday(.narrow)) }
+                    }
+                    .frame(height: 180)
+                }
+            }
+            Panel {
+                SectionLine(title: "Racha actual", icon: "flame.fill")
+                let streak = store.streak()
+                Text(streak == 1 ? "1 día" : "\(streak) días")
+                    .font(.title2.weight(.bold)).monospacedDigit()
+                Text("Completa todos tus hábitos del día para mantener la racha.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarVisibility(.visible, for: .navigationBar)
     }
 }
 

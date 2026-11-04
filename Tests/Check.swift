@@ -22,6 +22,8 @@ import Foundation
         precondition(store.update { $0.goals[0].done = true })
         let reopened = Store(url: url, seedURL: seed)
         precondition(reopened.data.goals[0].done && reopened.completed(duration, on: date))
+        precondition(reopened.amount(duration, on: date) == 30 && reopened.amount(duration, on: .now) == 0)
+        precondition(reopened.completed(check, on: date) && !reopened.completed(check, on: .now))
         reopened.set(0, habit: check, on: date)
         precondition(reopened.streak() == 0)
         let corrupt = Data("corrupt".utf8)
