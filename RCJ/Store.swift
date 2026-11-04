@@ -51,6 +51,7 @@ struct PersonalData: Codable {
     var log: [String: [UUID: Int]] = [:]
     var walks: [Walk] = []
     var recording: Walk?
+    var stepGoal: Int?
 }
 struct PersonalSeed: Decodable {
     struct HabitSeed: Decodable { let title: String; let target: Int? }
@@ -141,6 +142,13 @@ struct DayScore: Identifiable {
     }
     func completed(_ habit: Habit, on date: Date) -> Bool {
         amount(habit, on: date) >= (habit.target ?? 1)
+    }
+
+    var dailyStepGoal: Int { data.stepGoal ?? 8_000 }
+
+    func setDailyStepGoal(_ steps: Int) -> Bool {
+        guard steps > 0 else { return false }
+        return update { $0.stepGoal = steps }
     }
     @discardableResult
     func set(_ value: Int, habit: Habit, on date: Date) -> Bool {

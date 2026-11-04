@@ -479,16 +479,42 @@ private struct GoalsView: View {
 private struct ActivityView: View {
     let store: Store
     let activity: Activity
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selected: Walk?
     @State private var discard = false
+    @State private var editingStepGoal = false
+    @State private var stepGoalText = ""
+
+    private var todaySteps: Int? {
+        guard let last = activity.steps.last, Calendar.current.isDateInToday(last.date) else { return nil }
+        return last.count
+    }
 
     var body: some View {
         Dashboard(label: "03 / MOVIMIENTO", title: "Actividad", subtitle: "Tus pasos y recorridos a pie.") {
             Panel {
-                SectionLine(title: "Pasos de hoy")
-                Text(activity.steps.last?.count?.formatted() ?? "—")
+                SectionLine(title: "Pasos de hoy", icon: "shoeprints.fill")
+                Text(todaySteps?.formatted() ?? "—")
                     .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    .accessibilityLabel(activity.steps.last?.count.map { "\($0) pasos hoy" } ?? "Sin datos de pasos")
+                    .monospacedDigit()
+                    .contentTransition(reduceMotion ? .identity : .numericText(value: Double(todaySteps ?? 0)))
+                    .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: todaySteps)
+                    .accessibilityLabel(todaySteps.map { "\($0) pasos hoy" } ?? "Sin datos de pasos")
+                Label("Meta diaria de \(store.dailyStepGoal.formatted()) pasos", systemImage: "target")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                if let count = todaySteps {
+                    ProgressView(value: Double(min(count, store.dailyStepGoal)), total: Double(store.dailyStepGoal))
+                        .tint(highlight)
+                        .accessibilityLabel("Progreso de la meta de pasos")
+                    if count >= store.dailyStepGoal {
+                        Label("Meta alcanzada", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(highlight)
+                    }
+                }
+                Button("Cambiar meta", systemImage: "pencil") {
+                    stepGoalText = String(store.dailyStepGoal)
+                    editingStepGoal = true
+                }.buttonStyle(.glass)
                 if activity.loadingSteps { ProgressView() }
                 if !activity.stepStatus.isEmpty { Text(activity.stepStatus).font(.subheadline).foregroundStyle(.secondary) }
                 Button("Actualizar desde Salud", systemImage: "heart.text.clipboard") {
@@ -511,7 +537,7 @@ private struct ActivityView: View {
                 }
             }
             Panel {
-                SectionLine(title: "Caminata GPS")
+                SectionLine(title: "Caminata GPS", icon: "location.fill")
                 if let walk = store.data.recording {
                     TimelineView(.periodic(from: .now, by: 1)) { timeline in
                         let seconds = max(0, Int(timeline.date.timeIntervalSince(walk.start)))
@@ -532,7 +558,7 @@ private struct ActivityView: View {
                 }
             }
             Panel {
-                SectionLine(title: "Historial")
+                SectionLine(title: "Historial", icon: "clock.arrow.circlepath")
                 if store.data.walks.isEmpty { Text("Tus caminatas guardadas aparecerán aquí.").foregroundStyle(.secondary) }
                 ForEach(store.data.walks) { walk in
                     Button { selected = walk } label: {
@@ -545,6 +571,19 @@ private struct ActivityView: View {
                     }.buttonStyle(.plain)
                 }
             }
+        }
+        .sheet(isPresented: $editingStepGoal) {
+            EntryForm(title: "Meta diaria de pasos", canSave: (Int(stepGoalText) ?? 0) > 0) {
+                guard let goal = Int(stepGoalText) else { return false }
+                return withAnimation(reduceMotion ? nil : .smooth(duration: 0.28)) {
+                    store.setDailyStepGoal(goal)
+                }
+            } fields: {
+                TextField("Pasos al día", text: $stepGoalText).keyboardType(.numberPad)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            Task { await activity.refreshSteps() }
         }
         .confirmationDialog("¿Descartar la caminata en curso?", isPresented: $discard, titleVisibility: .visible) {
             Button("Descartar", role: .destructive) { activity.finish(save: false) }
