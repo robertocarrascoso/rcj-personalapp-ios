@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+<key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+<key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+<key>CFBundleDisplayName</key><string>RCJ</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+<key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+<key>UILaunchScreen</key><dict/>
+<key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
+<key>NSHealthShareUsageDescription</key><string>Lee tus pasos de Salud para mostrar tu actividad diaria y semanal.</string>
+<key>NSLocationWhenInUseUsageDescription</key><string>Graba el recorrido GPS únicamente mientras tienes una caminata en marcha.</string>
+<key>NSLocalNetworkUsageDescription</key><string>Conecta con tu puente privado de IA en la misma red Wi-Fi.</string>
+<key>NSFaceIDUsageDescription</key><string>Confirma que eres tú antes de vincular un puente o compartir un resumen con la IA.</string>
+<key>UIBackgroundModes</key><array><string>location</string></array>
+</dict></plist>

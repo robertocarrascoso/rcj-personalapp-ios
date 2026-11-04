@@ -1,0 +1,35 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 60;
+ objects = {
+  00000000000000000000001E = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCJ/Store.swift; sourceTree = "<group>"; };
+  000000000000000000000028 = { isa = PBXBuildFile; fileRef = 00000000000000000000001E; };
+  00000000000000000000001F = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCJ/Activity.swift; sourceTree = "<group>"; };
+  000000000000000000000029 = { isa = PBXBuildFile; fileRef = 00000000000000000000001F; };
+  000000000000000000000020 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCJ/RCJApp.swift; sourceTree = "<group>"; };
+  00000000000000000000002A = { isa = PBXBuildFile; fileRef = 000000000000000000000020; };
+  000000000000000000000021 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCJ/BridgeView.swift; sourceTree = "<group>"; };
+  00000000000000000000002B = { isa = PBXBuildFile; fileRef = 000000000000000000000021; };
+  000000000000000000000022 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge/Wire.swift; sourceTree = "<group>"; };
+  00000000000000000000002C = { isa = PBXBuildFile; fileRef = 000000000000000000000022; };
+  000000000000000000000023 = { isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = RCJ/Assets.xcassets; sourceTree = "<group>"; };
+  00000000000000000000002D = { isa = PBXBuildFile; fileRef = 000000000000000000000023; };
+  000000000000000000000014 = { isa = PBXFileReference; explicitFileType = wrapper.application; path = RCJ.app; sourceTree = BUILT_PRODUCTS_DIR; };
+  000000000000000000000002 = { isa = PBXGroup; children = (00000000000000000000001E, 00000000000000000000001F, 000000000000000000000020, 000000000000000000000021, 000000000000000000000022, 000000000000000000000023, 000000000000000000000003,); sourceTree = "<group>"; };
+  000000000000000000000003 = { isa = PBXGroup; children = (000000000000000000000014,); name = Products; sourceTree = "<group>"; };
+  000000000000000000000004 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000028, 000000000000000000000029, 00000000000000000000002A, 00000000000000000000002B, 00000000000000000000002C,); runOnlyForDeploymentPostprocessing = 0; };
+  000000000000000000000005 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (00000000000000000000002D,); runOnlyForDeploymentPostprocessing = 0; };
+  000000000000000000000006 = { isa = PBXShellScriptBuildPhase; alwaysOutOfDate = 1; buildActionMask = 2147483647; files = (); name = "Optional private seed"; runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "set -eu\ndest=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PersonalSeed.json\"\nif [ -n \"${RCJ_SEED_FILE:-}\" ]; then\n  install -m 600 \"$RCJ_SEED_FILE\" \"$dest\"\nelse\n  rm -f \"$dest\"\nfi\n"; };
+  000000000000000000000007 = { isa = PBXNativeTarget; buildConfigurationList = 00000000000000000000000A; buildPhases = (000000000000000000000004, 000000000000000000000005, 000000000000000000000006,); buildRules = (); dependencies = (); name = RCJ; productName = RCJ; productReference = 000000000000000000000014; productType = "com.apple.product-type.application"; };
+  000000000000000000000001 = { isa = PBXProject; attributes = { LastUpgradeCheck = 2720; TargetAttributes = { 000000000000000000000007 = { CreatedOnToolsVersion = 27.2; SystemCapabilities = { com.apple.HealthKit = { enabled = 1; }; }; }; }; }; buildConfigurationList = 000000000000000000000009; compatibilityVersion = "Xcode 15.0"; developmentRegion = es; hasScannedForEncodings = 0; knownRegions = (es, Base,); mainGroup = 000000000000000000000002; productRefGroup = 000000000000000000000003; projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000007,); };
+  000000000000000000000009 = { isa = XCConfigurationList; buildConfigurations = (00000000000000000000000B, 00000000000000000000000C,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  00000000000000000000000A = { isa = XCConfigurationList; buildConfigurations = (00000000000000000000000D, 00000000000000000000000E,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  00000000000000000000000B = { isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 26.0; SWIFT_VERSION = 5.0; }; name = Debug; };
+  00000000000000000000000C = { isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 26.0; SWIFT_VERSION = 5.0; }; name = Release; };
+  00000000000000000000000D = { isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = RCJ/RCJ.entitlements; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.robertocarrascoso.rcjpersonalapp; PRODUCT_NAME = RCJ; INFOPLIST_FILE = RCJ/Info.plist; TARGETED_DEVICE_FAMILY = 1; SUPPORTS_MACCATALYST = NO; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; ENABLE_USER_SCRIPT_SANDBOXING = NO; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+  00000000000000000000000E = { isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = RCJ/RCJ.entitlements; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.robertocarrascoso.rcjpersonalapp; PRODUCT_NAME = RCJ; INFOPLIST_FILE = RCJ/Info.plist; TARGETED_DEVICE_FAMILY = 1; SUPPORTS_MACCATALYST = NO; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; ENABLE_USER_SCRIPT_SANDBOXING = NO; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
+ };
+ rootObject = 000000000000000000000001;
+}
