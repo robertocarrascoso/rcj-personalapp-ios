@@ -7,14 +7,29 @@ struct Habit: Codable, Identifiable {
     let target: Int?
 }
 enum GoalGroup: String, Codable, CaseIterable, Identifiable {
-    case kill, gym
+    case kill, gym, personal
     var id: Self { self }
-    var title: String { self == .kill ? "Kill List" : "Gym Goals" }
+
+    var title: String {
+        switch self {
+        case .kill: "Kill List"
+        case .gym: "Gym Goals"
+        case .personal: "Personal"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .kill: "flag.checkered"
+        case .gym: "dumbbell.fill"
+        case .personal: "person.fill"
+        }
+    }
 }
 struct Goal: Codable, Identifiable {
     var id = UUID()
     let title: String
-    let group: GoalGroup
+    var group: GoalGroup
     var done = false
 }
 struct TrackPoint: Codable, Identifiable {

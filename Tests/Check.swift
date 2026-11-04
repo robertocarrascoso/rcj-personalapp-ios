@@ -19,9 +19,15 @@ import Foundation
         precondition(!store.completed(duration, on: date) && !store.completed(check, on: .now))
         store.set(30, habit: duration, on: date)
         precondition(store.streak() == 1 && store.summary(days: 2).habitCompletions == 2)
-        precondition(store.update { $0.goals[0].done = true })
+        let goal = store.data.goals[0]
+        precondition(goal.group == .gym)
+        precondition(store.update {
+            $0.goals[0].done = true
+            $0.goals[0].group = .personal
+        })
         let reopened = Store(url: url, seedURL: seed)
         precondition(reopened.data.goals[0].done && reopened.completed(duration, on: date))
+        precondition(reopened.data.goals[0].id == goal.id && reopened.data.goals[0].group == .personal)
         precondition(reopened.amount(duration, on: date) == 30 && reopened.amount(duration, on: .now) == 0)
         precondition(reopened.completed(check, on: date) && !reopened.completed(check, on: .now))
         reopened.set(0, habit: check, on: date)

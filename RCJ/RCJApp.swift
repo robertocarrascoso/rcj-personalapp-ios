@@ -407,33 +407,62 @@ private struct EntryForm<Fields: View>: View {
 
 private struct GoalsView: View {
     let store: Store
+    @State private var category: GoalGroup = .kill
     @State private var adding: GoalGroup?
     @State private var deleting: Goal?
     @State private var title = ""
 
     var body: some View {
+        let goals = store.data.goals.filter { $0.group == category }
+        let done = goals.filter(\.done).count
+
         Dashboard(label: "02 / DIRECCIÓN", title: "Goals", subtitle: "Tus próximos hitos, a tu ritmo.") {
-            ForEach(GoalGroup.allCases) { group in
-                let goals = store.data.goals.filter { $0.group == group }
-                let done = goals.filter(\.done).count
-                Panel {
-                    SectionLine(title: group.title) { title = ""; adding = group }
-                    Text("\(done) de \(goals.count) conseguidos").font(.subheadline).foregroundStyle(.secondary)
-                    ProgressView(value: Double(done), total: Double(max(1, goals.count))).tint(highlight)
-                    if goals.isEmpty { Text("Todavía no hay objetivos.").foregroundStyle(.secondary) }
+            Picker("Categoría de objetivos", selection: $category) {
+                ForEach(GoalGroup.allCases) { group in
+                    Text(group.title).tag(group)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Panel {
+                SectionLine(title: category.title, icon: category.icon) {
+                    title = ""
+                    adding = category
+                }
+                Text("\(done) de \(goals.count) conseguidos").font(.subheadline).foregroundStyle(.secondary)
+                ProgressView(value: Double(done), total: Double(max(1, goals.count))).tint(highlight)
+                if goals.isEmpty {
+                    Label("Todavía no hay objetivos. Pulsa + para añadir uno.", systemImage: "flag")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                VStack(spacing: 2) {
                     ForEach(goals) { goal in
+                        if goal.id != goals.first?.id { Divider() }
                         CheckLine(title: goal.title, done: goal.done) {
                             store.update {
                                 if let index = $0.goals.firstIndex(where: { $0.id == goal.id }) { $0.goals[index].done.toggle() }
                             }
                         }
-                        .contextMenu { Button("Eliminar", systemImage: "trash", role: .destructive) { deleting = goal } }
+                        .contextMenu {
+                            Menu("Mover a", systemImage: "folder") {
+                                ForEach(GoalGroup.allCases.filter { $0 != goal.group }) { destination in
+                                    Button(destination.title, systemImage: destination.icon) {
+                                        store.update {
+                                            if let index = $0.goals.firstIndex(where: { $0.id == goal.id }) {
+                                                $0.goals[index].group = destination
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Button("Eliminar", systemImage: "trash", role: .destructive) { deleting = goal }
+                        }
                     }
                 }
             }
         }
         .sheet(item: $adding) { group in
-            EntryForm(title: "Nuevo objetivo", canSave: Store.validTitle(title) && store.data.goals.count < 300) {
+            EntryForm(title: "Nuevo objetivo · \(group.title)", canSave: Store.validTitle(title) && store.data.goals.count < 300) {
                 store.update { $0.goals.append(Goal(title: title.trimmingCharacters(in: .whitespacesAndNewlines), group: group)) }
             } fields: { TextField("Objetivo", text: $title) }
         }
