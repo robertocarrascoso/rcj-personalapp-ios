@@ -43,9 +43,10 @@ struct BridgeView: View {
     @State private var busy = false
     @State private var status = ""
     @State private var confirming = false
+    @State private var showingSetup = false
 
     var body: some View {
-        Dashboard(label: "04 / CONTROL", title: "Puente IA", subtitle: "Tú decides qué sale de tu iPhone.") {
+        Dashboard(label: "04 / CONTROL", title: "IA", subtitle: "Conexión opcional con Grok y otras herramientas.") {
             Panel {
                 if let pairing {
                     Label("Mac vinculado · \(pairing.host)", systemImage: "lock.shield").font(.headline)
@@ -59,14 +60,30 @@ struct BridgeView: View {
                         } else { status = "No se pudo desvincular el puente." }
                     }.buttonStyle(.glass).disabled(busy)
                 } else {
-                    Text("Vincula tu Mac").font(.headline)
-                    Text("Genera el código de vinculación en el Mac con el comando pair del puente. Pégalo aquí y confirma.")
+                    SectionLine(title: "¿Para qué sirve?", icon: "lock.shield")
+                    Text("Tu Mac hace de puente entre la IA y el iPhone. Solo envía los totales de hábitos y objetivos que apruebes con Face ID o código.")
                         .font(.subheadline).foregroundStyle(.secondary)
-                    SecureField("Código de vinculación", text: $input)
-                        .textContentType(nil).textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .padding(12).background(.white.opacity(0.08), in: .rect(cornerRadius: 10))
-                    Button("Vincular", systemImage: "key.horizontal") { Task { await link() } }
-                        .buttonStyle(.glassProminent).disabled(input.isEmpty || busy)
+                    Text("Puedes usar Hábitos, Goals y Actividad sin configurar esta conexión.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+
+                    DisclosureGroup(isExpanded: $showingSetup) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Conecta ambos dispositivos a la misma Wi-Fi. En el Mac, abre Terminal en la carpeta del proyecto y sustituye IP_DEL_MAC por su IP local:")
+                            Text(verbatim: "swift run rcj-bridge pair IP_DEL_MAC")
+                                .font(.caption.monospaced()).textSelection(.enabled)
+                            Text("Pega aquí el código que devuelve Terminal y confirma tu identidad.")
+                            SecureField("Código de conexión", text: $input)
+                                .textContentType(nil).textInputAutocapitalization(.never).autocorrectionDisabled()
+                                .padding(12).background(.white.opacity(0.08), in: .rect(cornerRadius: 10))
+                            Button("Conectar Mac", systemImage: "key.horizontal") { Task { await link() } }
+                                .buttonStyle(.glassProminent).disabled(input.isEmpty || busy)
+                        }
+                        .font(.subheadline)
+                        .padding(.top, 12)
+                    } label: {
+                        Label("Configurar conexión", systemImage: "laptopcomputer")
+                            .font(.headline).frame(minHeight: 44)
+                    }
                 }
                 if busy { ProgressView() }
                 if !status.isEmpty { Text(status).font(.subheadline).foregroundStyle(.secondary) }
