@@ -25,7 +25,6 @@ private let highlight = Color(red: 0.99, green: 0.44, blue: 0.55)
                 }
                 Tab("Goals", systemImage: "flag.checkered") { GoalsView(store: store) }
                 Tab("Actividad", systemImage: "figure.walk") { ActivityView(store: store, activity: activity) }
-                Tab("IA", systemImage: "sparkles") { BridgeView(store: store) }
             }
             .preferredColorScheme(.dark)
             .tint(highlight)

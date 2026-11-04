@@ -11,7 +11,6 @@
   000000000000000000000020 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCJ/RCJApp.swift; sourceTree = "<group>"; };
   00000000000000000000002A = { isa = PBXBuildFile; fileRef = 000000000000000000000020; };
   000000000000000000000021 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCJ/BridgeView.swift; sourceTree = "<group>"; };
-  00000000000000000000002B = { isa = PBXBuildFile; fileRef = 000000000000000000000021; };
   000000000000000000000022 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge/Wire.swift; sourceTree = "<group>"; };
   00000000000000000000002C = { isa = PBXBuildFile; fileRef = 000000000000000000000022; };
   000000000000000000000023 = { isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = RCJ/Assets.xcassets; sourceTree = "<group>"; };
@@ -19,7 +18,7 @@
   000000000000000000000014 = { isa = PBXFileReference; explicitFileType = wrapper.application; path = RCJ.app; sourceTree = BUILT_PRODUCTS_DIR; };
   000000000000000000000002 = { isa = PBXGroup; children = (00000000000000000000001E, 00000000000000000000001F, 000000000000000000000020, 000000000000000000000021, 000000000000000000000022, 000000000000000000000023, 000000000000000000000003,); sourceTree = "<group>"; };
   000000000000000000000003 = { isa = PBXGroup; children = (000000000000000000000014,); name = Products; sourceTree = "<group>"; };
-  000000000000000000000004 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000028, 000000000000000000000029, 00000000000000000000002A, 00000000000000000000002B, 00000000000000000000002C,); runOnlyForDeploymentPostprocessing = 0; };
+  000000000000000000000004 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000028, 000000000000000000000029, 00000000000000000000002A, 00000000000000000000002C,); runOnlyForDeploymentPostprocessing = 0; };
   000000000000000000000005 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (00000000000000000000002D,); runOnlyForDeploymentPostprocessing = 0; };
   000000000000000000000006 = { isa = PBXShellScriptBuildPhase; alwaysOutOfDate = 1; buildActionMask = 2147483647; files = (); name = "Optional private seed"; runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "set -eu\ndest=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/PersonalSeed.json\"\nif [ -n \"${RCJ_SEED_FILE:-}\" ]; then\n  install -m 600 \"$RCJ_SEED_FILE\" \"$dest\"\nelse\n  rm -f \"$dest\"\nfi\n"; };
   000000000000000000000007 = { isa = PBXNativeTarget; buildConfigurationList = 00000000000000000000000A; buildPhases = (000000000000000000000004, 000000000000000000000005, 000000000000000000000006,); buildRules = (); dependencies = (); name = RCJ; productName = RCJ; productReference = 000000000000000000000014; productType = "com.apple.product-type.application"; };
