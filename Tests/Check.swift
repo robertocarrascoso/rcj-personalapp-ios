@@ -1,5 +1,6 @@
-import CryptoKit
 import Foundation
+
+// prueba que guardar, la racha y el mapa no petan
 
 @main enum Check {
     static func main() throws {
@@ -18,16 +19,17 @@ import Foundation
         store.set(1, habit: check, on: date)
         precondition(!store.completed(duration, on: date) && !store.completed(check, on: .now))
         store.set(30, habit: duration, on: date)
-        precondition(store.streak() == 1 && store.summary(days: 2).habitCompletions == 2)
+        precondition(store.streak() == 1)
+        precondition(store.recentDays(2).reduce(0) { $0 + $1.completed } == 2)
         let goal = store.data.goals[0]
         precondition(goal.group == .gym)
         precondition(store.update {
             $0.goals[0].done = true
-            $0.goals[0].group = .personal
+            $0.goals[0].group = .muscleapp
         })
         let reopened = Store(url: url, seedURL: seed)
         precondition(reopened.data.goals[0].done && reopened.completed(duration, on: date))
-        precondition(reopened.data.goals[0].id == goal.id && reopened.data.goals[0].group == .personal)
+        precondition(reopened.data.goals[0].id == goal.id && reopened.data.goals[0].group == .muscleapp)
         precondition(reopened.amount(duration, on: date) == 30 && reopened.amount(duration, on: .now) == 0)
         precondition(reopened.completed(check, on: date) && !reopened.completed(check, on: .now))
         precondition(reopened.dailyStepGoal == 8_000 && !reopened.setDailyStepGoal(0))
@@ -41,35 +43,86 @@ import Foundation
         let after = try Data(contentsOf: url)
         precondition(damaged.loadFailed && !damaged.update { $0.goals = [] } && after == corrupt)
 
-        let key = SymmetricKey(size: .bits256).withUnsafeBytes { Data($0) }
-        let wrongKey = SymmetricKey(size: .bits256).withUnsafeBytes { Data($0) }
-        let original = PhoneRequest()
-        let sealed = try Wire.seal(original, key: key, fromPhone: true)
-        let decoded = try Wire.open(PhoneRequest.self, sealed, key: key, fromPhone: true)
-        precondition(decoded.challenge == original.challenge)
-        precondition((try? Wire.open(PhoneRequest.self, sealed, key: key, fromPhone: false)) == nil)
-        precondition((try? Wire.open(PhoneRequest.self, sealed, key: wrongKey, fromPhone: true)) == nil)
-        var tampered = sealed
-        tampered[15] ^= 1
-        precondition((try? Wire.open(PhoneRequest.self, tampered, key: key, fromPhone: true)) == nil)
-        precondition(Pairing.privateIPv4("192.168.1.20") && !Pairing.privateIPv4("8.8.8.8") &&
-                     !Pairing.privateIPv4("192.168.1.020") && !Pairing.privateIPv4("192.168.256.5"))
-        precondition(!Approval(id: UUID(), consumer: .grok, days: 7, expires: .distantPast).valid)
-        precondition(!Approval(id: UUID(), consumer: .grok, days: 31, expires: .now.addingTimeInterval(60)).valid)
-        let gate = RequestGate(consumer: .grok, days: 7)
-        let request = gate.reply(PhoneRequest()).approval!
-        let summary = ProgressSummary(days: 7, habitCompletions: 3, habitOpportunities: 14,
-                                      goalsCompleted: 1, goalsTotal: 2)
-        precondition(gate.result == nil && request.consumer == .grok)
-        precondition(gate.reply(PhoneRequest(decision: UUID(), summary: summary)).accepted != true && gate.result == nil)
-        precondition(gate.reply(PhoneRequest(decision: request.id, summary: summary)).accepted == true)
-        let approved = try gate.result?.get()
-        precondition(approved?.habitCompletions == 3)
-        precondition(gate.reply(PhoneRequest(decision: request.id, summary: summary)).accepted != true)
-        let denied = RequestGate(consumer: .mcp, days: 7)
-        let denialID = denied.reply(PhoneRequest()).approval!.id
-        precondition(denied.reply(PhoneRequest(decision: denialID)).accepted == true)
-        precondition((try? denied.result?.get()) == nil)
-        print("OK: hábitos, persistencia, racha, cifrado, caducidad, aprobación, rechazo y antirrepetición.")
+        let legacyURL = directory.appending(path: "legacy/data.json")
+        try FileManager.default.createDirectory(at: legacyURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let legacy = PersonalData(goals: [Goal(title: "Sacar Modo Trainer", group: .kill, done: true),
+                                          Goal(title: "Subir 15 TikToks al día", group: .kill),
+                                          Goal(title: "Redes de MuscleApp", group: .kill),
+                                          Goal(title: "Leer más", group: .kill)])
+        let trainerID = legacy.goals[0].id
+        var legacyJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(legacy)) as! [String: Any]
+        legacyJSON.removeValue(forKey: "trips")
+        legacyJSON.removeValue(forKey: "goalsOrganized")
+        var legacyGoals = legacyJSON["goals"] as! [[String: Any]]
+        legacyGoals[3]["group"] = "personal"
+        legacyJSON["goals"] = legacyGoals
+        try JSONSerialization.data(withJSONObject: legacyJSON).write(to: legacyURL)
+        let trip = Trip(title: "Irlanda", flag: "🇮🇪", notes: "Dos visitas", visited: true)
+        let tripSeed: [String: Any] = ["habits": [], "goals": [],
+                                      "trips": try JSONSerialization.jsonObject(with: JSONEncoder().encode([trip]))]
+        try JSONSerialization.data(withJSONObject: tripSeed).write(to: seed)
+        let migrated = Store(url: legacyURL, seedURL: seed)
+        precondition(!migrated.loadFailed && migrated.data.goals.count == 4)
+        precondition(migrated.data.goals.prefix(3).allSatisfy { $0.group == .muscleapp })
+        precondition(migrated.data.goals[0].id == trainerID && migrated.data.goals[0].done)
+        precondition(migrated.data.goals[3].group == .kill && migrated.data.trips == [trip])
+        var editedTrip = trip
+        editedTrip.notes = "Vuelo y hotel\nhttps://example.com"
+        precondition(migrated.saveTrip(editedTrip))
+        editedTrip.title = " "
+        precondition(!migrated.saveTrip(editedTrip))
+        editedTrip = trip
+        editedTrip.notes = String(repeating: "x", count: 100_001)
+        precondition(!migrated.saveTrip(editedTrip))
+        precondition(migrated.update { $0.goals[0].group = .kill })
+        let migratedAgain = Store(url: legacyURL, seedURL: seed)
+        precondition(!migratedAgain.loadFailed && migratedAgain.data.trips?.count == 1)
+        precondition(migratedAgain.data.trips?.first?.notes == "Vuelo y hotel\nhttps://example.com")
+        precondition(migratedAgain.data.goals[0].group == .kill)
+        precondition(migratedAgain.saveTrip(Trip(title: "Roma", flag: "🇮🇹")))
+        precondition(Store(url: legacyURL).data.trips?.count == 2)
+
+        let atlas = try CountryAtlas(url: URL(fileURLWithPath: "RCJ/Countries.json"))
+        precondition(atlas.countries.count > 230)
+        let spain = atlas.countries.first { $0.code == "ES" }!
+        let usa = atlas.countries.first { $0.code == "US" }!
+        precondition(spain.flag == "🇪🇸" && CountryAtlas.code(for: "🇮🇨") == "ES")
+        precondition(CountryAtlas.code(for: "✈️") == nil && !CountryAtlas.validCode("bad"))
+        precondition(atlas.country(latitude: 40.4168, longitude: -3.7038)?.code == "ES")
+        precondition(atlas.country(latitude: 0, longitude: -30) == nil)
+        precondition(atlas.country(latitude: .nan, longitude: 0) == nil)
+        precondition(atlas.countries.contains { $0.code == "SG" })
+        let holed = Country(code: "ZZ", name: "Test", latitude: 2, longitude: 2,
+                            polygons: [[[[0,0],[10,0],[10,10],[0,10],[0,0]],
+                                        [[3,3],[7,3],[7,7],[3,7],[3,3]]]])
+        precondition(holed.contains(latitude: 2, longitude: 2) && !holed.contains(latitude: 5, longitude: 5))
+        let travelStore = Store(url: directory.appending(path: "atlas/data.json"))
+        let ny = Trip(title: "New York", flag: "🇺🇸", notes: "Reservas pendientes")
+        precondition(travelStore.saveTrip(ny) && travelStore.countryStatuses["US"] == .wanted)
+        precondition(travelStore.markCountry(usa, visited: true))
+        precondition(travelStore.countryStatuses["US"] == .visited)
+        precondition(travelStore.data.trips?.first { $0.id == ny.id } == ny)
+        precondition(travelStore.markCountry(usa, visited: true) && travelStore.data.trips?.count == 2)
+        precondition(travelStore.markCountry(spain, visited: false))
+        let travelReopened = Store(url: directory.appending(path: "atlas/data.json"))
+        precondition(travelReopened.countryStatuses["US"] == .visited && travelReopened.countryStatuses["ES"] == .wanted)
+        precondition(travelReopened.data.trips?.first { $0.id == ny.id }?.notes == ny.notes)
+        var reassigned = ny
+        reassigned.countryCode = "ES"
+        precondition(reassigned.resolvedCountryCode == "ES" && travelReopened.saveTrip(reassigned))
+        reassigned.countryCode = "invalid"
+        precondition(!travelReopened.saveTrip(reassigned))
+        let invalidAtlas = directory.appending(path: "countries.json")
+        try Data(#"[{"code":"ZZ","name":"Invalid","latitude":0,"longitude":0,"polygons":[[[[0]]]]}]"#.utf8).write(to: invalidAtlas)
+        precondition((try? CountryAtlas(url: invalidAtlas)) == nil)
+        let topicURL = directory.appending(path: "topics/data.json")
+        let topics = Store(url: topicURL)
+        precondition(topics.beginTopic("Impulso específico"))
+        precondition(!topics.beginTopic("Otro"))
+        precondition(topics.completeTopic() && topics.doneTopicIDs.contains("Impulso específico"))
+        precondition(!topics.beginTopic("Impulso específico") && topics.beginTopic("Otro"))
+        precondition(Store(url: topicURL).data.topicSession?.topicID == "Otro")
+        precondition(Store(url: topicURL).doneTopicIDs.contains("Impulso específico"))
+        print("OK: habitos, goals, viajes, mapa y temas.")
     }
 }

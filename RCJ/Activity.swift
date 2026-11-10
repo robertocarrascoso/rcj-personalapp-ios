@@ -3,6 +3,8 @@ import HealthKit
 import MapKit
 import Observation
 
+// pasos de la app Salud y la ruta si grabas una caminata
+
 struct StepDay: Identifiable {
     let date: Date
     let count: Int?
@@ -35,6 +37,7 @@ struct StepDay: Identifiable {
         location.showsBackgroundLocationIndicator = true
     }
 
+    // pide los pasos de los ultimos 7 dias. ask = true saca el permiso
     func refreshSteps(ask: Bool = false) async {
         guard ask || healthEnabled, !loadingSteps else { return }
         guard HKHealthStore.isHealthDataAvailable() else {
@@ -122,7 +125,7 @@ struct StepDay: Identifiable {
                     let elapsed = point.timestamp.timeIntervalSince(last.time)
                     let distance = point.distance(from: CLLocation(latitude: last.latitude, longitude: last.longitude))
                     guard elapsed > 0, distance >= 5, distance / elapsed <= 12 else { continue }
-                    // No sumes un salto entre tramos cuando el GPS ha estado sin señal.
+                    // si el gps se corta un rato, ese salto no cuenta como distancia
                     if elapsed <= 90 { walk.meters += distance }
                 }
                 walk.points.append(.init(latitude: point.coordinate.latitude, longitude: point.coordinate.longitude, time: point.timestamp))

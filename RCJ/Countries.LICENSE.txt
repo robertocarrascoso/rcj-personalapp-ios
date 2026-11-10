@@ -1,0 +1,5 @@
+Natural Earth 5.1.2 — Admin 0 Countries, 1:50m. Public domain.
+Source: https://github.com/nvkelso/natural-earth-vector/blob/v5.1.2/geojson/ne_50m_admin_0_countries.geojson
+Terms: https://www.naturalearthdata.com/about/terms-of-use/
+Source SHA-256: 3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb
+Adaptation: ISO A2 EH codes, Spanish names, label positions and geometry rounded to four decimals. Areas sharing an ISO code are merged; three areas without a code are omitted. Borders are approximate and reflect this dataset.
